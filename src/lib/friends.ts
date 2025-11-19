@@ -47,6 +47,11 @@ export async function getUserFriends(userId: number) {
  * Send a friend request
  */
 export async function sendFriendRequest(requesterId: number, addresseeId: number) {
+  // Check if trying to add yourself
+  if (requesterId === addresseeId) {
+    throw new Error("You can't send a friend request to yourself");
+  }
+
   const existingFriendship = await db
     .select()
     .from(friendships)
@@ -55,8 +60,7 @@ export async function sendFriendRequest(requesterId: number, addresseeId: number
         and(eq(friendships.requesterId, requesterId), eq(friendships.addresseeId, addresseeId)),
         and(eq(friendships.requesterId, addresseeId), eq(friendships.addresseeId, requesterId))
       )
-    )
-    .limit(1);
+    );
 
   if (existingFriendship.length > 0) {
     throw new Error("Friend request already exists or you are already friends");

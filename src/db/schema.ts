@@ -7,6 +7,12 @@ import { sqliteTable, integer, text } from 'drizzle-orm/sqlite-core';
 // notification_type: 'friend_request', 'friend_accepted', 'message', 'group_invite'
 // theme: 'light', 'dark', 'auto'
 
+// ==================== BETTER AUTH TABLES ====================
+export * from './schema/auth';
+
+// ==================== REAL-TIME MESSAGING EXPORTS ====================
+export * from './schema/messages';
+
 // ==================== CORE USER TABLES ====================
 
 // 1. Users - Core authentication and profile data

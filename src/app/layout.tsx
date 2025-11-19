@@ -4,6 +4,8 @@ import VisualEditsMessenger from "../visual-edits/VisualEditsMessenger";
 import ErrorReporter from "@/components/ErrorReporter";
 import Script from "next/script";
 import { ThemeProvider } from "@/components/theme-provider";
+import { Providers } from "@/components/Providers";
+import { SocketProvider } from "@/contexts/SocketContext";
 
 export const metadata: Metadata = {
   title: "LeetSocial - Connect with LeetCode Developers",
@@ -29,19 +31,23 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <body className="antialiased">
         <ThemeProvider defaultTheme="system" storageKey="leetsocial-theme">
-          <ErrorReporter />
-          <Script
-            src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/scripts//route-messenger.js"
-            strategy="afterInteractive"
-            data-target-origin="*"
-            data-message-type="ROUTE_CHANGE"
-            data-include-search-params="true"
-            data-only-in-iframe="true"
-            data-debug="true"
-            data-custom-data='{"appName": "YourApp", "version": "1.0.0", "greeting": "hi"}'
-          />
-          {children}
-          <VisualEditsMessenger />
+          <Providers>
+            <SocketProvider>
+              <ErrorReporter />
+              <Script
+              src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/scripts//route-messenger.js"
+              strategy="afterInteractive"
+              data-target-origin="*"
+              data-message-type="ROUTE_CHANGE"
+              data-include-search-params="true"
+              data-only-in-iframe="true"
+              data-debug="true"
+              data-custom-data='{"appName": "YourApp", "version": "1.0.0", "greeting": "hi"}'
+            />
+              {children}
+              <VisualEditsMessenger />
+            </SocketProvider>
+          </Providers>
         </ThemeProvider>
       </body>
     </html>

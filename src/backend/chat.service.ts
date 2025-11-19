@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { drizzle } from 'drizzle-orm/node-postgres';
 import { eq, and, desc, lt, gt } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import * as schema from '../db/schema/chat';
+import { db } from '../db';
 
 @Injectable()
 export class ChatService {
-  private db = drizzle(/* your postgres connection */, { schema });
+  private db = db;
 
   // ==================== Room Management ====================
 

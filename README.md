@@ -29,8 +29,10 @@ A complete full-stack social networking platform built specifically for the Leet
 
 ## 🛠️ Tech Stack
 
-**Frontend:** Next.js 15.3.5 • React 19 • TypeScript 5 • Tailwind CSS v4 • Radix UI  
-**Backend:** NestJS • Socket.IO • Redis • Drizzle ORM • PostgreSQL • Better Auth
+**Frontend:** Next.js 15.3.5 • React 19 • TypeScript 5 • Tailwind CSS v4 • Shadcn/UI  
+**Backend:** Better Auth • Drizzle ORM • SQLite • React Query  
+**Testing:** Vitest • Playwright • Testing Library  
+**Dev Tools:** ESLint • TypeScript • Turbopack
 
 ---
 
@@ -42,10 +44,17 @@ git clone https://github.com/yogeshsain1/leetsocial-platform-blueprint.git
 cd leetsocial-platform-blueprint
 
 # Install dependencies
-npm install --legacy-peer-deps
+npm install
+
+# Setup database
+npm run db:push
 
 # Run development server
 npm run dev
+
+# Run tests
+npm test              # Unit tests
+npm run test:e2e      # E2E tests
 
 # Open browser
 http://localhost:3000
@@ -76,12 +85,32 @@ http://localhost:3000
 
 ```
 src/
-├── app/                    # Next.js pages (15+ routes)
-├── components/ui/          # 45+ shadcn/ui components
-├── frontend/               # Chat components
-├── backend/                # Backend templates
-├── db/                     # Database schema
-└── lib/                    # Utilities
+├── app/                    # Next.js 15 App Router
+│   ├── (auth)/            # Login/Signup pages
+│   ├── api/               # API routes (auth, friends)
+│   └── [pages]/           # Feature pages (15+ routes)
+├── components/             # React components
+│   ├── ui/                # 45+ Shadcn/UI components
+│   ├── ErrorBoundary.tsx  # Error handling
+│   └── Providers.tsx      # App providers
+├── contexts/              # React Context (Auth)
+├── hooks/                 # Custom React hooks
+├── lib/                   # Utilities
+│   ├── api-response.ts    # API standardization
+│   ├── validation.ts      # Zod schemas
+│   ├── rate-limit.ts      # Rate limiting
+│   ├── security.ts        # Security headers
+│   ├── sanitize.ts        # Input sanitization
+│   ├── performance.ts     # Performance utils
+│   └── auth.ts            # Better-auth config
+├── db/                    # Database
+│   ├── schema.ts          # Drizzle schema
+│   └── index.ts           # DB connection
+└── middleware.ts          # Auth & security middleware
+
+tests/
+├── unit/                  # Vitest unit tests
+└── e2e/                   # Playwright E2E tests
 ```
 
 ---
@@ -142,22 +171,66 @@ src/
 
 ---
 
+## 🔐 Security Features
+
+- **Rate Limiting** - Prevent API abuse with configurable limits
+- **Input Sanitization** - XSS and injection protection
+- **CSRF Protection** - Token-based validation
+- **Security Headers** - CSP, HSTS, X-Frame-Options, etc.
+- **Authentication** - Secure session management with better-auth
+- **Validation** - Zod schema validation on all inputs
+- **Error Handling** - Comprehensive error boundaries
+
+---
+
+## 🚀 Performance Optimizations
+
+- **React Query** - Intelligent data caching and synchronization
+- **Code Splitting** - Optimized bundle sizes
+- **Lazy Loading** - Images and components on demand
+- **Debouncing/Throttling** - Optimized event handling
+- **Turbopack** - Fast development builds
+
+---
+
 ## 📊 Stats
 
 - **15+ Pages** created
 - **50+ Components** built
 - **45+ UI Components** from shadcn/ui
-- **10,000+ Lines** of code
-- **100% Complete** - All features implemented
+- **Production-Ready** - API standardization, validation, security
+- **Fully Tested** - Unit & E2E test suites
 
 ---
 
 ## 📝 Documentation
 
-- `FEATURES_COMPLETE.md` - Complete features list
+- `IMPLEMENTATION_PLAN.md` - Complete implementation roadmap
+- `FRONTEND_BACKEND_PLAN.md` - Architecture & design system
+- `PRODUCTION_READY.md` - Production deployment guide
+- `PROJECT_STATUS.md` - Current project status
+- `DATABASE_ARCHITECTURE.md` - Database schema design
 - `CHAT_ARCHITECTURE.md` - Chat system architecture
-- `DATABASE_ARCHITECTURE.md` - Database design
 - `API_DOCUMENTATION.md` - API endpoints
+
+---
+
+## 📋 Available Scripts
+
+```bash
+npm run dev              # Start development server
+npm run build            # Build for production
+npm run start            # Start production server
+npm run lint             # Run ESLint
+npm test                 # Run unit tests
+npm run test:ui          # Run tests with UI
+npm run test:coverage    # Generate coverage report
+npm run test:e2e         # Run E2E tests
+npm run test:e2e:ui      # Run E2E tests with UI
+npm run type-check       # TypeScript type checking
+npm run db:push          # Push schema to database
+npm run db:studio        # Open Drizzle Studio
+```
 
 ---
 

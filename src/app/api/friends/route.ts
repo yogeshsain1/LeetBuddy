@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import {
+  successResponse,
+  errorResponse,
+  unauthorizedError,
+  validationError,
+  APIError,
+} from "@/lib/api-response";
+import { validateRequestBody, friendRequestSchema } from "@/lib/validation";
+import { checkRateLimit } from "@/lib/rate-limit";
+import {
   sendFriendRequest,
   acceptFriendRequest,
   rejectFriendRequest,
@@ -14,12 +23,16 @@ import { eq } from "drizzle-orm";
 
 export async function GET(request: NextRequest) {
   try {
+    // Rate limiting
+    checkRateLimit(request, "api");
+
+    // Authentication
     const session = await auth.api.getSession({
       headers: request.headers,
     });
 
     if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return unauthorizedError();
     }
 
     const searchParams = request.nextUrl.searchParams;
@@ -46,7 +59,7 @@ export async function GET(request: NextRequest) {
         })
       );
 
-      return NextResponse.json({ friends: friendDetails });
+      return successResponse({ friends: friendDetails });
     } else if (action === "pending") {
       // Get pending friend requests
       const pending = await getPendingFriendRequests(parseInt(session.user.id));
@@ -68,56 +81,71 @@ export async function GET(request: NextRequest) {
         })
       );
 
-      return NextResponse.json({ pending: pendingDetails });
+      return successResponse({ pending: pendingDetails });
     }
 
-    return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+    return validationError("Invalid action parameter");
   } catch (error) {
-    console.error("GET /api/friends error:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
+    return errorResponse(
+      error instanceof Error ? error : new Error("Unknown error")
     );
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting - stricter for writes
+    checkRateLimit(request, "strict");
+
+    // Authentication
     const session = await auth.api.getSession({
       headers: request.headers,
     });
 
     if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return unauthorizedError();
     }
 
     const body = await request.json();
     const { action, userId, friendshipId } = body;
 
     if (action === "send") {
+      // Validate request
+      const data = validateRequestBody(body, friendRequestSchema);
+      
       // Send friend request
-      await sendFriendRequest(parseInt(session.user.id), userId);
-      return NextResponse.json({ success: true, message: "Friend request sent" });
+      await sendFriendRequest(parseInt(session.user.id), data.userId);
+      return successResponse(
+        { success: true },
+        { timestamp: new Date().toISOString() }
+      );
     } else if (action === "accept") {
-      // Accept friend request
+      if (!friendshipId) {
+        return validationError("friendshipId is required");
+      }
       await acceptFriendRequest(friendshipId, parseInt(session.user.id));
-      return NextResponse.json({ success: true, message: "Friend request accepted" });
+      return successResponse({ success: true });
     } else if (action === "reject") {
-      // Reject friend request
+      if (!friendshipId) {
+        return validationError("friendshipId is required");
+      }
       await rejectFriendRequest(friendshipId, parseInt(session.user.id));
-      return NextResponse.json({ success: true, message: "Friend request rejected" });
+      return successResponse({ success: true });
     } else if (action === "remove") {
-      // Remove friend
+      if (!userId) {
+        return validationError("userId is required");
+      }
       await removeFriend(parseInt(session.user.id), userId);
-      return NextResponse.json({ success: true, message: "Friend removed" });
+      return successResponse({ success: true });
     }
 
-    return NextResponse.json({ error: "Invalid action" }, { status: 400 });
-  } catch (error: any) {
-    console.error("POST /api/friends error:", error);
-    return NextResponse.json(
-      { error: error.message || "Internal server error" },
-      { status: 500 }
+    return validationError("Invalid action parameter");
+  } catch (error) {
+    if (error instanceof APIError) {
+      return errorResponse(error);
+    }
+    return errorResponse(
+      error instanceof Error ? error : new Error("Unknown error")
     );
   }
 }

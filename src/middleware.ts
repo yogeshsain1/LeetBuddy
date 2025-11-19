@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
+import { securityHeaders } from "@/lib/security";
 
 // Public routes that don't require authentication
 const publicRoutes = ["/", "/login", "/signin", "/signup", "/api/auth"];
@@ -21,9 +22,13 @@ const protectedRoutes = [
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Apply security headers to all responses
+  let response: NextResponse;
+
   // Allow public routes
   if (publicRoutes.some((route) => pathname.startsWith(route))) {
-    return NextResponse.next();
+    response = NextResponse.next();
+    return securityHeaders(request);
   }
 
   // Check if route requires authentication
@@ -39,20 +44,24 @@ export async function middleware(request: NextRequest) {
         // Redirect to login if not authenticated
         const url = new URL("/login", request.url);
         url.searchParams.set("redirect", pathname);
-        return NextResponse.redirect(url);
+        response = NextResponse.redirect(url);
+        return securityHeaders(request);
       }
 
       // User is authenticated, allow access
-      return NextResponse.next();
+      response = NextResponse.next();
+      return securityHeaders(request);
     } catch (error) {
       console.error("Middleware auth error:", error);
       const url = new URL("/login", request.url);
       url.searchParams.set("redirect", pathname);
-      return NextResponse.redirect(url);
+      response = NextResponse.redirect(url);
+      return securityHeaders(request);
     }
   }
 
-  return NextResponse.next();
+  response = NextResponse.next();
+  return securityHeaders(request);
 }
 
 export const config = {
