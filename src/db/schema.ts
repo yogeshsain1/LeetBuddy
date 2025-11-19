@@ -1,13 +1,11 @@
 import { sqliteTable, integer, text } from 'drizzle-orm/sqlite-core';
 
 // ==================== ENUM DEFINITIONS ====================
-// difficulty_level: 'easy', 'medium', 'hard'
-// vote_type: 'upvote', 'downvote'
-// role: 'admin', 'moderator', 'member'
-// notification_type: 'like', 'comment', 'follow', 'mention', 'answer', 'message'
+// friend_status: 'pending', 'accepted', 'rejected', 'blocked'
+// message_type: 'text', 'image', 'file', 'code'
+// group_role: 'owner', 'admin', 'member'
+// notification_type: 'friend_request', 'friend_accepted', 'message', 'group_invite'
 // theme: 'light', 'dark', 'auto'
-// report_status: 'pending', 'reviewed', 'resolved', 'dismissed'
-// reported_content_type: 'post', 'comment', 'doubt', 'user'
 
 // ==================== CORE USER TABLES ====================
 
@@ -17,17 +15,6 @@ export const users = sqliteTable('users', {
   email: text('email').notNull().unique(),
   username: text('username').notNull().unique(),
   passwordHash: text('password_hash').notNull(),
-  createdAt: text('created_at').notNull(),
-  updatedAt: text('updated_at').notNull(),
-  lastLoginAt: text('last_login_at'),
-  isVerified: integer('is_verified', { mode: 'boolean' }).default(false).notNull(),
-  isActive: integer('is_active', { mode: 'boolean' }).default(true).notNull(),
-});
-
-// 2. UserProfile - Extended user information (1-1 with Users)
-export const userProfiles = sqliteTable('user_profiles', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  userId: integer('user_id').notNull().unique().references(() => users.id, { onDelete: 'cascade' }),
   fullName: text('full_name'),
   bio: text('bio'),
   avatarUrl: text('avatar_url'),
@@ -35,211 +22,149 @@ export const userProfiles = sqliteTable('user_profiles', {
   githubUrl: text('github_url'),
   location: text('location'),
   website: text('website'),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+  lastLoginAt: text('last_login_at'),
+  isVerified: integer('is_verified', { mode: 'boolean' }).default(false).notNull(),
+  isActive: integer('is_active', { mode: 'boolean' }).default(true).notNull(),
+});
+
+// 2. LeetCode Stats - User's LeetCode statistics
+export const leetcodeStats = sqliteTable('leetcode_stats', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').notNull().unique().references(() => users.id, { onDelete: 'cascade' }),
+  easyCount: integer('easy_count').default(0).notNull(),
+  mediumCount: integer('medium_count').default(0).notNull(),
+  hardCount: integer('hard_count').default(0).notNull(),
+  totalSolved: integer('total_solved').default(0).notNull(),
+  contestRating: integer('contest_rating').default(0).notNull(),
   currentStreak: integer('current_streak').default(0).notNull(),
   longestStreak: integer('longest_streak').default(0).notNull(),
-  totalProblemsSolved: integer('total_problems_solved').default(0).notNull(),
+  lastSyncedAt: text('last_synced_at'),
+  updatedAt: text('updated_at').notNull(),
+});
+
+// 3. Friendships - Mutual friend relationships with privacy
+export const friendships = sqliteTable('friendships', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  requesterId: integer('requester_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  addresseeId: integer('addressee_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  status: text('status').notNull(), // 'pending', 'accepted', 'rejected', 'blocked'
+  requestedAt: text('requested_at').notNull(),
+  respondedAt: text('responded_at'),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
 });
 
-// 3. Followers - Many-to-many self-referential relationship
-export const followers = sqliteTable('followers', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  followerId: integer('follower_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  followingId: integer('following_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  createdAt: text('created_at').notNull(),
-});
+// ==================== MESSAGING SYSTEM (FRIENDS ONLY) ====================
 
-// ==================== POSTS & ENGAGEMENT ====================
-
-// 4. Posts - User posts/thoughts/code snippets
-export const posts = sqliteTable('posts', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  content: text('content').notNull(),
-  codeSnippet: text('code_snippet'),
-  language: text('language'),
-  problemLink: text('problem_link'),
-  isPinned: integer('is_pinned', { mode: 'boolean' }).default(false).notNull(),
-  createdAt: text('created_at').notNull(),
-  updatedAt: text('updated_at').notNull(),
-});
-
-// 5. PostLikes - Many-to-many for post likes
-export const postLikes = sqliteTable('post_likes', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  postId: integer('post_id').notNull().references(() => posts.id, { onDelete: 'cascade' }),
-  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  createdAt: text('created_at').notNull(),
-});
-
-// 6. Comments - Comments on posts
-export const comments = sqliteTable('comments', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  postId: integer('post_id').notNull().references(() => posts.id, { onDelete: 'cascade' }),
-  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  content: text('content').notNull(),
-  parentCommentId: integer('parent_comment_id').references(() => comments.id, { onDelete: 'set null' }),
-  createdAt: text('created_at').notNull(),
-  updatedAt: text('updated_at').notNull(),
-});
-
-// 7. CommentLikes - Many-to-many for comment likes
-export const commentLikes = sqliteTable('comment_likes', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  commentId: integer('comment_id').notNull().references(() => comments.id, { onDelete: 'cascade' }),
-  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  createdAt: text('created_at').notNull(),
-});
-
-// 8. Bookmarks - User bookmarked posts
-export const bookmarks = sqliteTable('bookmarks', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  postId: integer('post_id').notNull().references(() => posts.id, { onDelete: 'cascade' }),
-  createdAt: text('created_at').notNull(),
-});
-
-// ==================== Q&A MODULE ====================
-
-// 9. Doubts - Q&A module for asking questions
-export const doubts = sqliteTable('doubts', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  title: text('title').notNull(),
-  content: text('content').notNull(),
-  tags: text('tags', { mode: 'json' }), // Store as JSON array
-  difficultyLevel: text('difficulty_level').notNull(), // 'easy', 'medium', 'hard'
-  isResolved: integer('is_resolved', { mode: 'boolean' }).default(false).notNull(),
-  viewsCount: integer('views_count').default(0).notNull(),
-  createdAt: text('created_at').notNull(),
-  updatedAt: text('updated_at').notNull(),
-});
-
-// 10. DoubtAnswers - Answers to doubts
-export const doubtAnswers = sqliteTable('doubt_answers', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  doubtId: integer('doubt_id').notNull().references(() => doubts.id, { onDelete: 'cascade' }),
-  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  content: text('content').notNull(),
-  codeSnippet: text('code_snippet'),
-  isAccepted: integer('is_accepted', { mode: 'boolean' }).default(false).notNull(),
-  createdAt: text('created_at').notNull(),
-  updatedAt: text('updated_at').notNull(),
-});
-
-// 11. DoubtAnswerVotes - Upvote/downvote for answers
-export const doubtAnswerVotes = sqliteTable('doubt_answer_votes', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  answerId: integer('answer_id').notNull().references(() => doubtAnswers.id, { onDelete: 'cascade' }),
-  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  voteType: text('vote_type').notNull(), // 'upvote', 'downvote'
-  createdAt: text('created_at').notNull(),
-});
-
-// ==================== MESSAGING SYSTEM ====================
-
-// 12. Messages - 1:1 direct messages
-export const messages = sqliteTable('messages', {
+// 4. Direct Messages - 1:1 messages between friends
+export const directMessages = sqliteTable('direct_messages', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   senderId: integer('sender_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   receiverId: integer('receiver_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   content: text('content').notNull(),
+  messageType: text('message_type').default('text').notNull(), // 'text', 'image', 'file', 'code'
+  fileUrl: text('file_url'),
+  fileName: text('file_name'),
+  codeLanguage: text('code_language'),
   isRead: integer('is_read', { mode: 'boolean' }).default(false).notNull(),
+  isEdited: integer('is_edited', { mode: 'boolean' }).default(false).notNull(),
   createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
 });
 
-// 13. GroupChats - Group chat rooms
-export const groupChats = sqliteTable('group_chats', {
+// ==================== GROUP SYSTEM (USER CREATED) ====================
+
+// 5. Groups - User-created study groups
+export const groups = sqliteTable('groups', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   name: text('name').notNull(),
   description: text('description'),
-  creatorId: integer('creator_id').references(() => users.id, { onDelete: 'set null' }),
   avatarUrl: text('avatar_url'),
-  isActive: integer('is_active', { mode: 'boolean' }).default(true).notNull(),
+  ownerId: integer('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  isPrivate: integer('is_private', { mode: 'boolean' }).default(false).notNull(),
+  maxMembers: integer('max_members').default(50).notNull(),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
 });
 
-// 14. GroupChatMembers - Many-to-many for group membership
-export const groupChatMembers = sqliteTable('group_chat_members', {
+// 6. Group Members - Many-to-many for group membership
+export const groupMembers = sqliteTable('group_members', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  groupId: integer('group_id').notNull().references(() => groupChats.id, { onDelete: 'cascade' }),
+  groupId: integer('group_id').notNull().references(() => groups.id, { onDelete: 'cascade' }),
   userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  role: text('role').notNull(), // 'admin', 'moderator', 'member'
+  role: text('role').default('member').notNull(), // 'owner', 'admin', 'member'
   joinedAt: text('joined_at').notNull(),
+  leftAt: text('left_at'),
 });
 
-// 15. GroupMessages - Messages in group chats
+// 7. Group Invitations - Invites to join groups
+export const groupInvitations = sqliteTable('group_invitations', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  groupId: integer('group_id').notNull().references(() => groups.id, { onDelete: 'cascade' }),
+  inviterId: integer('inviter_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  inviteeId: integer('invitee_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  status: text('status').default('pending').notNull(), // 'pending', 'accepted', 'declined'
+  createdAt: text('created_at').notNull(),
+  respondedAt: text('responded_at'),
+});
+
+// 8. Group Messages - Messages in groups
 export const groupMessages = sqliteTable('group_messages', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  groupId: integer('group_id').notNull().references(() => groupChats.id, { onDelete: 'cascade' }),
-  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  groupId: integer('group_id').notNull().references(() => groups.id, { onDelete: 'cascade' }),
+  senderId: integer('sender_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   content: text('content').notNull(),
+  messageType: text('message_type').default('text').notNull(), // 'text', 'image', 'file', 'code'
+  fileUrl: text('file_url'),
+  fileName: text('file_name'),
+  codeLanguage: text('code_language'),
+  isEdited: integer('is_edited', { mode: 'boolean' }).default(false).notNull(),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});
+
+// ==================== ACTIVITY & NOTIFICATIONS ====================
+
+// 9. User Activities - Track user actions for feed
+export const userActivities = sqliteTable('user_activities', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  activityType: text('activity_type').notNull(), // 'problem_solved', 'streak_milestone', 'friend_added'
+  title: text('title').notNull(),
+  description: text('description'),
+  metadata: text('metadata', { mode: 'json' }), // Store additional data as JSON
   createdAt: text('created_at').notNull(),
 });
 
-// ==================== NOTIFICATIONS & GAMIFICATION ====================
-
-// 16. Notifications - User notifications
+// 10. Notifications - User notifications
 export const notifications = sqliteTable('notifications', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  type: text('type').notNull(), // 'like', 'comment', 'follow', 'mention', 'answer', 'message'
+  type: text('type').notNull(), // 'friend_request', 'friend_accepted', 'message', 'group_invite'
+  title: text('title').notNull(),
   content: text('content').notNull(),
-  relatedId: integer('related_id'), // Polymorphic reference
-  relatedType: text('related_type'), // 'post', 'comment', 'doubt', etc.
+  relatedId: integer('related_id'), // ID of related entity (friendship, message, etc.)
+  relatedType: text('related_type'), // Type of related entity
   isRead: integer('is_read', { mode: 'boolean' }).default(false).notNull(),
   createdAt: text('created_at').notNull(),
 });
 
-// 17. UserStreaks - Daily coding streak tracking
-export const userStreaks = sqliteTable('user_streaks', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  streakDate: text('streak_date').notNull(), // ISO date format
-  problemsSolved: integer('problems_solved').default(0).notNull(),
-  createdAt: text('created_at').notNull(),
-});
+// ==================== SETTINGS ====================
 
-// 18. LeaderboardStats - Aggregated leaderboard data
-export const leaderboardStats = sqliteTable('leaderboard_stats', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  userId: integer('user_id').notNull().unique().references(() => users.id, { onDelete: 'cascade' }),
-  totalPosts: integer('total_posts').default(0).notNull(),
-  totalDoubtsAnswered: integer('total_doubts_answered').default(0).notNull(),
-  totalAcceptedAnswers: integer('total_accepted_answers').default(0).notNull(),
-  reputationScore: integer('reputation_score').default(0).notNull(),
-  rank: integer('rank'),
-  updatedAt: text('updated_at').notNull(),
-});
-
-// ==================== SETTINGS & MODERATION ====================
-
-// 19. UserSettings - User preferences (1-1 with Users)
+// 11. User Settings - User preferences (1-1 with Users)
 export const userSettings = sqliteTable('user_settings', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   userId: integer('user_id').notNull().unique().references(() => users.id, { onDelete: 'cascade' }),
   emailNotifications: integer('email_notifications', { mode: 'boolean' }).default(true).notNull(),
-  pushNotifications: integer('push_notifications', { mode: 'boolean' }).default(true).notNull(),
-  showStreakPublicly: integer('show_streak_publicly', { mode: 'boolean' }).default(true).notNull(),
-  showEmailPublicly: integer('show_email_publicly', { mode: 'boolean' }).default(false).notNull(),
+  friendRequestNotifications: integer('friend_request_notifications', { mode: 'boolean' }).default(true).notNull(),
+  messageNotifications: integer('message_notifications', { mode: 'boolean' }).default(true).notNull(),
+  groupNotifications: integer('group_notifications', { mode: 'boolean' }).default(true).notNull(),
+  profileVisibility: text('profile_visibility').default('friends').notNull(), // 'public', 'friends', 'private'
+  showLeetCodeStats: integer('show_leetcode_stats', { mode: 'boolean' }).default(true).notNull(),
   theme: text('theme').default('auto').notNull(), // 'light', 'dark', 'auto'
   language: text('language').default('en').notNull(),
-  createdAt: text('created_at').notNull(),
-  updatedAt: text('updated_at').notNull(),
-});
-
-// 20. Reports - Content moderation reports
-export const reports = sqliteTable('reports', {
-  id: integer('id').primaryKey({ autoIncrement: true }),
-  reporterId: integer('reporter_id').references(() => users.id, { onDelete: 'set null' }),
-  reportedContentId: integer('reported_content_id').notNull(),
-  reportedContentType: text('reported_content_type').notNull(), // 'post', 'comment', 'doubt', 'user'
-  reason: text('reason').notNull(),
-  status: text('status').default('pending').notNull(), // 'pending', 'reviewed', 'resolved', 'dismissed'
-  reviewedBy: integer('reviewed_by').references(() => users.id, { onDelete: 'set null' }),
-  resolutionNotes: text('resolution_notes'),
   createdAt: text('created_at').notNull(),
   updatedAt: text('updated_at').notNull(),
 });
