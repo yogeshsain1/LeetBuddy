@@ -1,4 +1,4 @@
-import { db } from '@/db';
+import { db } from '../../db';
 import { 
   roomMessages, 
   messageRooms, 
@@ -6,10 +6,10 @@ import {
   messageReactions,
   messageReadReceipts,
   realtimeNotifications 
-} from '@/db/schema/messages';
-import { user } from '@/db/schema/auth';
+} from '../../db/schema/messages';
+import { user } from '../../db/schema/auth';
 import { eq, and, desc, sql } from 'drizzle-orm';
-import { cacheMessage, incrementUnreadCount } from '@/lib/redis';
+import { cacheMessage, incrementUnreadCount } from '../../lib/redis';
 
 export interface SendMessageData {
   roomId: number;

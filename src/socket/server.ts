@@ -1,5 +1,10 @@
 import { Server as HTTPServer } from 'http';
 import { Server as SocketIOServer, Socket } from 'socket.io';
+import { auth } from '../lib/auth';
+import { db } from '../db';
+import { user } from '../db/schema/auth';
+import { eq } from 'drizzle-orm';
+import { roomMessages } from '../db/schema/messages';
 import {
   setUserOnline,
   setUserOffline,
@@ -9,7 +14,7 @@ import {
   removeSocketSession,
   checkRateLimit,
   resetUnreadCount,
-} from '@/lib/redis';
+} from '../lib/redis';
 import {
   createMessage,
   editMessage,
@@ -20,7 +25,24 @@ import {
   type SendMessageData,
 } from './services/message.service';
 
-// ==================== TYPES ====================
+// ==================== HELPER FUNCTIONS ====================
+
+async function getRoomIdForMessage(messageId: number): Promise<number | null> {
+  try {
+    const [message] = await db
+      .select({ roomId: roomMessages.roomId })
+      .from(roomMessages)
+      .where(eq(roomMessages.id, messageId))
+      .limit(1);
+
+    return message?.roomId || null;
+  } catch (error) {
+    console.error('Error getting room ID for message:', error);
+    return null;
+  }
+}
+
+// ==================== SOCKET.IO SERVER ====================
 
 interface AuthenticatedSocket extends Socket {
   userId?: string;
@@ -102,18 +124,32 @@ export function initializeSocket(httpServer: HTTPServer): SocketIOServer {
 
     socket.on('authenticate', async (token: string) => {
       try {
-        // TODO: Implement proper JWT verification
-        // For now, we'll use a simple mock authentication
-        const userId = token; // In real app, verify JWT and extract userId (should be string UUID)
-        
-        if (!userId) {
+        // Verify session using better-auth
+        const session = await auth.api.getSession({
+          headers: new Headers({
+            'authorization': `Bearer ${token}`,
+            'cookie': socket.handshake.headers.cookie || '',
+          }),
+        });
+
+        if (!session?.user?.id) {
           socket.emit('error', { code: 'AUTH_FAILED', message: 'Authentication failed' });
           socket.disconnect();
           return;
         }
 
+        const userId = session.user.id;
+
+        // Fetch user details from database
+        const userData = await db.select().from(user).where(eq(user.id, userId)).limit(1);
+        if (!userData.length) {
+          socket.emit('error', { code: 'USER_NOT_FOUND', message: 'User not found' });
+          socket.disconnect();
+          return;
+        }
+
         socket.userId = userId;
-        socket.username = `User${userId}`; // In real app, fetch from database
+        socket.username = userData[0].username || userData[0].email || `User${userId}`;
 
         // Store socket session
         await storeSocketSession(userId, socket.id);
@@ -124,7 +160,7 @@ export function initializeSocket(httpServer: HTTPServer): SocketIOServer {
         // Notify others
         socket.broadcast.emit('user_online', userId);
 
-        console.log(`✅ User authenticated: ${userId} (${socket.id})`);
+        console.log(`✅ User authenticated: ${userId} (${socket.username}) - ${socket.id}`);
       } catch (error) {
         console.error('Authentication error:', error);
         socket.emit('error', { code: 'AUTH_ERROR', message: 'Authentication error' });
@@ -227,8 +263,11 @@ export function initializeSocket(httpServer: HTTPServer): SocketIOServer {
 
         if (success) {
           // Get the room for this message
-          // TODO: Query database for roomId
-          const roomId = 1; // Placeholder
+          const roomId = await getRoomIdForMessage(data.messageId);
+          if (!roomId) {
+            callback({ success: false, error: 'Message not found' });
+            return;
+          }
 
           io?.to(`room:${roomId}`).emit('message_edited', {
             messageId: data.messageId,
@@ -256,8 +295,11 @@ export function initializeSocket(httpServer: HTTPServer): SocketIOServer {
 
         if (success) {
           // Get the room for this message
-          // TODO: Query database for roomId
-          const roomId = 1; // Placeholder
+          const roomId = await getRoomIdForMessage(messageId);
+          if (!roomId) {
+            callback({ success: false, error: 'Message not found' });
+            return;
+          }
 
           io?.to(`room:${roomId}`).emit('message_deleted', messageId);
 
@@ -334,8 +376,11 @@ export function initializeSocket(httpServer: HTTPServer): SocketIOServer {
 
         if (success) {
           // Get the room for this message
-          // TODO: Query database for roomId
-          const roomId = 1; // Placeholder
+          const roomId = await getRoomIdForMessage(data.messageId);
+          if (!roomId) {
+            callback({ success: false, error: 'Message not found' });
+            return;
+          }
 
           io?.to(`room:${roomId}`).emit('reaction_added', {
             messageId: data.messageId,
@@ -364,8 +409,11 @@ export function initializeSocket(httpServer: HTTPServer): SocketIOServer {
 
         if (success) {
           // Get the room for this message
-          // TODO: Query database for roomId
-          const roomId = 1; // Placeholder
+          const roomId = await getRoomIdForMessage(data.messageId);
+          if (!roomId) {
+            callback({ success: false, error: 'Message not found' });
+            return;
+          }
 
           io?.to(`room:${roomId}`).emit('reaction_removed', {
             messageId: data.messageId,
