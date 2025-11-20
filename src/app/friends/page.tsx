@@ -244,14 +244,17 @@ export default function FriendsPage() {
                 </Card>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredFriends.map((friendship) => (
+                  {filteredFriends.map((friendship, index) => (
                     <motion.div
-                      key={friendship.friendshipId}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
+                      key={friendship.friend.id}
+                      layout
+                      initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.9, y: -20 }}
+                      transition={{ delay: index * 0.05, duration: 0.3 }}
+                      whileHover={{ scale: 1.02, y: -4 }}
                     >
-                      <Card className="p-6 hover:shadow-lg transition-shadow">
+                      <Card className="p-6 hover:shadow-xl transition-all duration-300 border-2 hover:border-orange-200 dark:hover:border-orange-800">
                         <div className="flex items-start gap-4">
                           <img
                             src={

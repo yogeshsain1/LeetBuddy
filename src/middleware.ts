@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { securityHeaders } from "@/lib/security";
 
 // Public routes that don't require authentication
-const publicRoutes = ["/", "/login", "/signin", "/signup", "/api/auth"];
+const publicRoutes = ["/", "/login", "/signin", "/signup"];
 
 // Routes that require authentication
 const protectedRoutes = [
@@ -25,8 +25,14 @@ export async function middleware(request: NextRequest) {
   // Apply security headers to all responses
   let response: NextResponse;
 
+  // Allow all API routes to pass through without auth check
+  if (pathname.startsWith("/api/")) {
+    response = NextResponse.next();
+    return securityHeaders(request);
+  }
+
   // Allow public routes
-  if (publicRoutes.some((route) => pathname.startsWith(route))) {
+  if (publicRoutes.some((route) => pathname === route || pathname.startsWith(route + "/"))) {
     response = NextResponse.next();
     return securityHeaders(request);
   }

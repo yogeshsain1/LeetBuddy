@@ -43,7 +43,7 @@ export default function LoginPage() {
       }
 
       // Success - redirect to dashboard
-      router.push("/home");
+      router.push("/messages");
     } catch (err: any) {
       setError(err.message || "Invalid email or password. Please try again.");
     } finally {

@@ -1,6 +1,6 @@
 import { sqliteTable, integer, text } from 'drizzle-orm/sqlite-core';
 
-// Better Auth required tables
+// Better Auth required tables with extended fields
 export const user = sqliteTable('user', {
   id: text('id').primaryKey(),
   name: text('name').notNull(),
@@ -9,6 +9,13 @@ export const user = sqliteTable('user', {
   image: text('image'),
   createdAt: integer('createdAt', { mode: 'timestamp' }).notNull(),
   updatedAt: integer('updatedAt', { mode: 'timestamp' }).notNull(),
+  // Extended fields for LeetSocial
+  username: text('username').unique(),
+  leetcodeUsername: text('leetcodeUsername'),
+  bio: text('bio'),
+  location: text('location'),
+  githubUrl: text('githubUrl'),
+  website: text('website'),
 });
 
 export const session = sqliteTable('session', {

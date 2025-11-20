@@ -65,7 +65,7 @@ export function NotificationProvider({
       });
 
       // Auto-dismiss if duration is set
-      if (newNotification.duration > 0) {
+      if (newNotification.duration && newNotification.duration > 0) {
         setTimeout(() => {
           removeNotification(id);
         }, newNotification.duration);

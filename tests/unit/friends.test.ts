@@ -42,8 +42,8 @@ describe('Friends System', () => {
 
   describe('sendFriendRequest', () => {
     it('should send a friend request', async () => {
-      const requesterId = 1;
-      const addresseeId = 2;
+      const requesterId = "user-1";
+      const addresseeId = "user-2";
 
       await expect(
         sendFriendRequest(requesterId, addresseeId)
@@ -51,7 +51,7 @@ describe('Friends System', () => {
     });
 
     it('should throw error when sending request to self', async () => {
-      const userId = 1;
+      const userId = "user-1";
 
       await expect(sendFriendRequest(userId, userId)).rejects.toThrow(
         "You can't send a friend request to yourself"
@@ -62,7 +62,7 @@ describe('Friends System', () => {
   describe('acceptFriendRequest', () => {
     it('should accept a friend request', async () => {
       const friendshipId = 1;
-      const addresseeId = 2;
+      const addresseeId = "user-2";
 
       await expect(
         acceptFriendRequest(friendshipId, addresseeId)
@@ -73,7 +73,7 @@ describe('Friends System', () => {
   describe('rejectFriendRequest', () => {
     it('should reject a friend request', async () => {
       const friendshipId = 1;
-      const addresseeId = 2;
+      const addresseeId = "user-2";
 
       await expect(
         rejectFriendRequest(friendshipId, addresseeId)
@@ -83,8 +83,8 @@ describe('Friends System', () => {
 
   describe('removeFriend', () => {
     it('should remove a friend', async () => {
-      const userId = 1;
-      const friendId = 2;
+      const userId = "user-1";
+      const friendId = "user-2";
 
       await expect(removeFriend(userId, friendId)).resolves.not.toThrow();
     });

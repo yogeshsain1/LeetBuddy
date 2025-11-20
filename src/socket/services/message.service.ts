@@ -7,13 +7,13 @@ import {
   messageReadReceipts,
   realtimeNotifications 
 } from '@/db/schema/messages';
-import { users } from '@/db/schema';
+import { user } from '@/db/schema/auth';
 import { eq, and, desc, sql } from 'drizzle-orm';
 import { cacheMessage, incrementUnreadCount } from '@/lib/redis';
 
 export interface SendMessageData {
   roomId: number;
-  senderId: number;
+  senderId: string;
   content: string;
   type?: 'text' | 'image' | 'file' | 'code' | 'system';
   fileUrl?: string;
@@ -28,7 +28,7 @@ export interface SendMessageData {
 export interface Message {
   id: number;
   roomId: number;
-  senderId: number;
+  senderId: string;
   senderName: string;
   senderAvatar: string | null;
   content: string;
@@ -45,7 +45,7 @@ export interface Message {
   isPinned: boolean;
   createdAt: string;
   updatedAt: string;
-  reactions?: Array<{ emoji: string; count: number; users: number[] }>;
+  reactions?: Array<{ emoji: string; count: number; users: string[] }>;
 }
 
 // ==================== CREATE MESSAGE ====================
@@ -61,7 +61,7 @@ export async function createMessage(data: SendMessageData): Promise<Message | nu
       .where(
         and(
           eq(roomMembers.roomId, data.roomId),
-          eq(roomMembers.userId, data.senderId)
+          eq(roomMembers.userId, String(data.senderId))
         )
       )
       .limit(1);
@@ -76,7 +76,7 @@ export async function createMessage(data: SendMessageData): Promise<Message | nu
       .insert(roomMessages)
       .values({
         roomId: data.roomId,
-        senderId: data.senderId,
+        senderId: String(data.senderId),
         content: data.content,
         type: data.type || 'text',
         fileUrl: data.fileUrl,
@@ -100,11 +100,11 @@ export async function createMessage(data: SendMessageData): Promise<Message | nu
     // Get sender info
     const [sender] = await db
       .select({
-        username: users.username,
-        avatarUrl: users.avatarUrl,
+        username: user.username,
+        avatarUrl: user.image,
       })
-      .from(users)
-      .where(eq(users.id, data.senderId))
+      .from(user)
+      .where(eq(user.id, String(data.senderId)))
       .limit(1);
 
     // Create full message object
@@ -141,8 +141,8 @@ export async function createMessage(data: SendMessageData): Promise<Message | nu
       .where(eq(roomMembers.roomId, data.roomId));
 
     for (const member of members) {
-      if (member.userId !== data.senderId) {
-        await incrementUnreadCount(member.userId, data.roomId);
+      if (String(member.userId) !== String(data.senderId)) {
+        await incrementUnreadCount(String(member.userId), data.roomId);
       }
     }
 
@@ -161,13 +161,13 @@ export async function getMessages(
   beforeId?: number
 ): Promise<Message[]> {
   try {
-    let query = db
+    const query = db
       .select({
         id: roomMessages.id,
         roomId: roomMessages.roomId,
         senderId: roomMessages.senderId,
-        senderName: users.username,
-        senderAvatar: users.avatarUrl,
+        senderName: user.name,
+        senderAvatar: user.image,
         content: roomMessages.content,
         type: roomMessages.type,
         fileUrl: roomMessages.fileUrl,
@@ -184,19 +184,16 @@ export async function getMessages(
         updatedAt: roomMessages.updatedAt,
       })
       .from(roomMessages)
-      .leftJoin(users, eq(roomMessages.senderId, users.id))
-      .where(eq(roomMessages.roomId, roomId))
+      .leftJoin(user, eq(user.id, roomMessages.senderId))
+      .where(beforeId ? and(eq(roomMessages.roomId, roomId), sql`${roomMessages.id} < ${beforeId}`) : eq(roomMessages.roomId, roomId))
       .orderBy(desc(roomMessages.createdAt))
       .limit(limit);
 
-    if (beforeId) {
-      query = query.where(sql`${roomMessages.id} < ${beforeId}`);
-    }
-
     const messages = await query;
 
-    return messages.map((msg) => ({
+    return messages.map((msg): Message => ({
       ...msg,
+      senderName: msg.senderName || 'Unknown',
       isEdited: Boolean(msg.isEdited),
       isDeleted: Boolean(msg.isDeleted),
       isPinned: Boolean(msg.isPinned),
@@ -212,7 +209,7 @@ export async function getMessages(
 
 export async function editMessage(
   messageId: number,
-  userId: number,
+  userId: string,
   newContent: string
 ): Promise<boolean> {
   try {
@@ -229,7 +226,7 @@ export async function editMessage(
       .where(
         and(
           eq(roomMessages.id, messageId),
-          eq(roomMessages.senderId, userId)
+          eq(roomMessages.senderId, String(userId))
         )
       );
 
@@ -244,7 +241,7 @@ export async function editMessage(
 
 export async function deleteMessage(
   messageId: number,
-  userId: number
+  userId: string
 ): Promise<boolean> {
   try {
     const now = new Date().toISOString();
@@ -260,7 +257,7 @@ export async function deleteMessage(
       .where(
         and(
           eq(roomMessages.id, messageId),
-          eq(roomMessages.senderId, userId)
+          eq(roomMessages.senderId, String(userId))
         )
       );
 
@@ -275,7 +272,7 @@ export async function deleteMessage(
 
 export async function addReaction(
   messageId: number,
-  userId: number,
+  userId: string,
   emoji: string
 ): Promise<boolean> {
   try {
@@ -288,7 +285,7 @@ export async function addReaction(
       .where(
         and(
           eq(messageReactions.messageId, messageId),
-          eq(messageReactions.userId, userId),
+          eq(messageReactions.userId, String(userId)),
           eq(messageReactions.emoji, emoji)
         )
       )
@@ -300,7 +297,7 @@ export async function addReaction(
 
     await db.insert(messageReactions).values({
       messageId,
-      userId,
+      userId: String(userId),
       emoji,
       createdAt: now,
     });
@@ -314,7 +311,7 @@ export async function addReaction(
 
 export async function removeReaction(
   messageId: number,
-  userId: number,
+  userId: string,
   emoji: string
 ): Promise<boolean> {
   try {
@@ -323,7 +320,7 @@ export async function removeReaction(
       .where(
         and(
           eq(messageReactions.messageId, messageId),
-          eq(messageReactions.userId, userId),
+          eq(messageReactions.userId, String(userId)),
           eq(messageReactions.emoji, emoji)
         )
       );
@@ -339,7 +336,7 @@ export async function removeReaction(
 
 export async function markAsRead(
   messageId: number,
-  userId: number
+  userId: string
 ): Promise<boolean> {
   try {
     const now = new Date().toISOString();
@@ -351,7 +348,7 @@ export async function markAsRead(
       .where(
         and(
           eq(messageReadReceipts.messageId, messageId),
-          eq(messageReadReceipts.userId, userId)
+          eq(messageReadReceipts.userId, String(userId))
         )
       )
       .limit(1);
@@ -362,7 +359,7 @@ export async function markAsRead(
 
     await db.insert(messageReadReceipts).values({
       messageId,
-      userId,
+      userId: String(userId),
       readAt: now,
     });
 
@@ -383,7 +380,7 @@ export async function markAsRead(
         .where(
           and(
             eq(roomMembers.roomId, message.roomId),
-            eq(roomMembers.userId, userId)
+            eq(roomMembers.userId, String(userId))
           )
         );
     }

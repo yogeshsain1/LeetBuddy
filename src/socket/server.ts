@@ -23,7 +23,7 @@ import {
 // ==================== TYPES ====================
 
 interface AuthenticatedSocket extends Socket {
-  userId?: number;
+  userId?: string;
   username?: string;
 }
 
@@ -58,20 +58,20 @@ interface ServerToClientEvents {
   new_message: (message: any) => void;
   message_edited: (data: { messageId: number; content: string }) => void;
   message_deleted: (messageId: number) => void;
-  messages_read: (data: { roomId: number; userId: number; messageId: number }) => void;
+  messages_read: (data: { roomId: number; userId: string; messageId: number }) => void;
 
   // Typing
-  user_typing: (data: { roomId: number; userId: number; username: string }) => void;
-  user_stopped_typing: (data: { roomId: number; userId: number }) => void;
+  user_typing: (data: { roomId: number; userId: string; username: string }) => void;
+  user_stopped_typing: (data: { roomId: number; userId: string }) => void;
 
   // Presence
-  user_online: (userId: number) => void;
-  user_offline: (userId: number) => void;
-  user_status_changed: (data: { userId: number; status: string }) => void;
+  user_online: (userId: string) => void;
+  user_offline: (userId: string) => void;
+  user_status_changed: (data: { userId: string; status: string }) => void;
 
   // Reactions
-  reaction_added: (data: { messageId: number; userId: number; emoji: string }) => void;
-  reaction_removed: (data: { messageId: number; userId: number; emoji: string }) => void;
+  reaction_added: (data: { messageId: number; userId: string; emoji: string }) => void;
+  reaction_removed: (data: { messageId: number; userId: string; emoji: string }) => void;
 
   // Notifications
   new_notification: (notification: any) => void;
@@ -104,7 +104,7 @@ export function initializeSocket(httpServer: HTTPServer): SocketIOServer {
       try {
         // TODO: Implement proper JWT verification
         // For now, we'll use a simple mock authentication
-        const userId = parseInt(token); // In real app, verify JWT and extract userId
+        const userId = token; // In real app, verify JWT and extract userId (should be string UUID)
         
         if (!userId) {
           socket.emit('error', { code: 'AUTH_FAILED', message: 'Authentication failed' });

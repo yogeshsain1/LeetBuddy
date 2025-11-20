@@ -75,7 +75,7 @@ async function optimizeImage(
 export async function POST(request: NextRequest) {
   try {
     // TODO: Get userId from session/auth
-    const userId = 1; // Placeholder
+    const userId = '1'; // Placeholder (should be a string UUID)
 
     const formData = await request.formData();
     const file = formData.get('file') as File;
@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
     const [upload] = await db
       .insert(fileUploads)
       .values({
-        userId,
+        userId: String(userId),
         fileName: file.name,
         fileUrl,
         thumbnailUrl,
@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     // TODO: Get userId from session/auth
-    const userId = 1; // Placeholder
+    const userId = '1'; // Placeholder (should be a string UUID)
 
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '20');
@@ -178,7 +178,7 @@ export async function GET(request: NextRequest) {
     const uploads = await db
       .select()
       .from(fileUploads)
-      .where(eq(fileUploads.userId, userId))
+      .where(eq(fileUploads.userId, String(userId)))
       .orderBy(desc(fileUploads.uploadedAt))
       .limit(limit);
 

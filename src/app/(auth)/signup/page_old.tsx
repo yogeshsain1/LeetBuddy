@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { 
   Mail, Lock, User, Eye, EyeOff, Loader2, AlertCircle, 
-  CheckCircle, ArrowRight, ArrowLeft, Github, Sparkles
+  CheckCircle, ArrowRight, ArrowLeft, Github, Sparkles, Code2
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";

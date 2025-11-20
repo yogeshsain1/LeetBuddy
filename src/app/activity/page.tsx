@@ -2,7 +2,6 @@
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
   Code2,
@@ -10,261 +9,79 @@ import {
   UserCheck,
   MessageCircle,
   Bell,
-  Heart,
-  MessageSquare,
-  Share2,
   Trophy,
-  Flame,
-  Award,
-  CheckCircle,
-  Target,
   TrendingUp,
-  Filter,
+  Loader2,
+  CheckCircle,
+  Award,
+  Flame,
+  UserPlus,
 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface Activity {
-  id: string;
-  type: "problem_solved" | "contest_participated" | "badge_earned" | "streak_milestone";
-  user: {
-    username: string;
-    realName: string;
-    avatar: string;
-  };
-  content: {
-    title: string;
-    difficulty?: "Easy" | "Medium" | "Hard";
-    badge?: string;
-    details?: string;
-  };
-  timestamp: string;
-  likes: number;
-  comments: number;
-  isLiked: boolean;
-  isFriend: boolean;
+  id: number;
+  username: string;
+  fullName: string | null;
+  avatarUrl: string | null;
+  activityType: string;
+  title: string;
+  description: string | null;
+  createdAt: string;
 }
 
-export default function ActivityFeedPage() {
+export default function ActivityPage() {
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "friends">("all");
-  const [activities, setActivities] = useState<Activity[]>([
-    {
-      id: "1",
-      type: "problem_solved",
-      user: {
-        username: "sarah_codes",
-        realName: "Sarah Johnson",
-        avatar: "https://ui-avatars.com/api/?name=Sarah+Johnson&background=eab308",
-      },
-      content: {
-        title: "Two Sum",
-        difficulty: "Easy",
-        details: "Solved in 5 minutes using HashMap approach",
-      },
-      timestamp: "2 minutes ago",
-      likes: 12,
-      comments: 3,
-      isLiked: false,
-      isFriend: true,
-    },
-    {
-      id: "2",
-      type: "contest_participated",
-      user: {
-        username: "mike_binary",
-        realName: "Michael Rodriguez",
-        avatar: "https://ui-avatars.com/api/?name=Michael+Rodriguez&background=ef4444",
-      },
-      content: {
-        title: "Weekly Contest 372",
-        details: "Ranked #156 globally • Solved 3/4 problems",
-      },
-      timestamp: "15 minutes ago",
-      likes: 28,
-      comments: 7,
-      isLiked: true,
-      isFriend: false,
-    },
-    {
-      id: "3",
-      type: "badge_earned",
-      user: {
-        username: "david_tree",
-        realName: "David Lee",
-        avatar: "https://ui-avatars.com/api/?name=David+Lee&background=8b5cf6",
-      },
-      content: {
-        title: "Graph Master",
-        badge: "🏆",
-        details: "Solved 50 graph problems",
-      },
-      timestamp: "1 hour ago",
-      likes: 45,
-      comments: 12,
-      isLiked: true,
-      isFriend: true,
-    },
-    {
-      id: "4",
-      type: "problem_solved",
-      user: {
-        username: "alex_algorithm",
-        realName: "Alex Chen",
-        avatar: "https://ui-avatars.com/api/?name=Alex+Chen&background=10b981",
-      },
-      content: {
-        title: "Longest Increasing Path in a Matrix",
-        difficulty: "Hard",
-        details: "DFS + Memoization • Time: O(m*n)",
-      },
-      timestamp: "2 hours ago",
-      likes: 67,
-      comments: 15,
-      isLiked: false,
-      isFriend: false,
-    },
-    {
-      id: "5",
-      type: "streak_milestone",
-      user: {
-        username: "emma_dev",
-        realName: "Emma Wilson",
-        avatar: "https://ui-avatars.com/api/?name=Emma+Wilson&background=3b82f6",
-      },
-      content: {
-        title: "100 Day Streak",
-        badge: "🔥",
-        details: "Solved problems for 100 consecutive days!",
-      },
-      timestamp: "3 hours ago",
-      likes: 89,
-      comments: 24,
-      isLiked: true,
-      isFriend: false,
-    },
-    {
-      id: "6",
-      type: "problem_solved",
-      user: {
-        username: "lisa_array",
-        realName: "Lisa Martinez",
-        avatar: "https://ui-avatars.com/api/?name=Lisa+Martinez&background=ec4899",
-      },
-      content: {
-        title: "Median of Two Sorted Arrays",
-        difficulty: "Hard",
-        details: "Binary Search approach • First Hard problem solved!",
-      },
-      timestamp: "5 hours ago",
-      likes: 156,
-      comments: 32,
-      isLiked: false,
-      isFriend: false,
-    },
-    {
-      id: "7",
-      type: "contest_participated",
-      user: {
-        username: "sarah_codes",
-        realName: "Sarah Johnson",
-        avatar: "https://ui-avatars.com/api/?name=Sarah+Johnson&background=eab308",
-      },
-      content: {
-        title: "Biweekly Contest 118",
-        details: "Ranked #89 globally • Solved 4/4 problems • New personal best!",
-      },
-      timestamp: "1 day ago",
-      likes: 234,
-      comments: 45,
-      isLiked: true,
-      isFriend: true,
-    },
-  ]);
 
-  const filteredActivities =
-    filter === "friends" ? activities.filter((a) => a.isFriend) : activities;
+  useEffect(() => {
+    fetchActivities();
+  }, [filter]);
 
-  const handleLike = (id: string) => {
-    setActivities((prev) =>
-      prev.map((activity) =>
-        activity.id === id
-          ? {
-              ...activity,
-              isLiked: !activity.isLiked,
-              likes: activity.isLiked ? activity.likes - 1 : activity.likes + 1,
-            }
-          : activity
-      )
-    );
-  };
-
-  const getDifficultyColor = (difficulty?: string) => {
-    if (difficulty === "Easy")
-      return "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400";
-    if (difficulty === "Medium")
-      return "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400";
-    if (difficulty === "Hard")
-      return "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400";
-    return "";
+  const fetchActivities = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`/api/activities?filter=${filter}`);
+      const data = await response.json();
+      if (data.success) {
+        setActivities(data.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch activities:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getActivityIcon = (type: string) => {
     switch (type) {
       case "problem_solved":
         return <CheckCircle className="w-5 h-5 text-green-500" />;
-      case "contest_participated":
-        return <Trophy className="w-5 h-5 text-purple-500" />;
-      case "badge_earned":
-        return <Award className="w-5 h-5 text-yellow-500" />;
       case "streak_milestone":
         return <Flame className="w-5 h-5 text-orange-500" />;
+      case "friend_added":
+        return <UserPlus className="w-5 h-5 text-blue-500" />;
       default:
-        return <Target className="w-5 h-5 text-gray-500" />;
+        return <Award className="w-5 h-5 text-gray-500" />;
     }
   };
 
-  const getActivityTitle = (activity: Activity) => {
-    switch (activity.type) {
-      case "problem_solved":
-        return (
-          <>
-            solved{" "}
-            <span className="font-bold text-gray-900 dark:text-white">
-              {activity.content.title}
-            </span>
-          </>
-        );
-      case "contest_participated":
-        return (
-          <>
-            participated in{" "}
-            <span className="font-bold text-gray-900 dark:text-white">
-              {activity.content.title}
-            </span>
-          </>
-        );
-      case "badge_earned":
-        return (
-          <>
-            earned the{" "}
-            <span className="font-bold text-gray-900 dark:text-white">
-              {activity.content.badge} {activity.content.title}
-            </span>{" "}
-            badge
-          </>
-        );
-      case "streak_milestone":
-        return (
-          <>
-            achieved{" "}
-            <span className="font-bold text-gray-900 dark:text-white">
-              {activity.content.badge} {activity.content.title}
-            </span>
-          </>
-        );
-      default:
-        return null;
-    }
+  const getRelativeTime = (timestamp: string) => {
+    const now = new Date();
+    const past = new Date(timestamp);
+    const diffMs = now.getTime() - past.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return "just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return past.toLocaleDateString();
   };
 
   return (
@@ -281,12 +98,6 @@ export default function ActivityFeedPage() {
             </Link>
 
             <div className="flex items-center gap-4">
-              <Link href="/community">
-                <Button variant="ghost" className="gap-2">
-                  <Users className="w-5 h-5" />
-                  Community
-                </Button>
-              </Link>
               <Link href="/friends">
                 <Button variant="ghost" className="gap-2">
                   <UserCheck className="w-5 h-5" />
@@ -294,11 +105,9 @@ export default function ActivityFeedPage() {
                 </Button>
               </Link>
               <Link href="/messages">
-                <Button variant="ghost" className="gap-2 relative">
+                <Button variant="ghost" className="gap-2">
                   <MessageCircle className="w-5 h-5" />
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                    3
-                  </span>
+                  Messages
                 </Button>
               </Link>
               <Link href="/activity">
@@ -313,14 +122,6 @@ export default function ActivityFeedPage() {
                   Leaderboard
                 </Button>
               </Link>
-              <Link href="/notifications">
-                <Button variant="ghost" className="gap-2 relative">
-                  <Bell className="w-5 h-5" />
-                  <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                    3
-                  </span>
-                </Button>
-              </Link>
               <ThemeToggle />
             </div>
           </div>
@@ -332,13 +133,13 @@ export default function ActivityFeedPage() {
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">Activity Feed</h1>
           <p className="text-xl text-gray-600 dark:text-gray-300">
-            See what the community is achieving
+            See what everyone is achieving
           </p>
         </div>
 
-        {/* Filter Tabs */}
-        <Card className="p-4 mb-6 bg-white dark:bg-gray-900">
-          <div className="flex items-center gap-2">
+        {/* Filter */}
+        <Card className="p-4 mb-6">
+          <div className="flex gap-2">
             <Button
               variant={filter === "all" ? "default" : "outline"}
               onClick={() => setFilter("all")}
@@ -360,107 +161,98 @@ export default function ActivityFeedPage() {
           </div>
         </Card>
 
-        {/* Activity Feed */}
-        <div className="space-y-4">
-          {filteredActivities.map((activity) => (
-            <Card key={activity.id} className="p-6 bg-white dark:bg-gray-900 hover:shadow-lg transition-shadow">
-              <div className="flex gap-4">
-                {/* User Avatar */}
-                <Link href={`/profile/${activity.user.username}`}>
-                  <img
-                    src={activity.user.avatar}
-                    alt={activity.user.username}
-                    className="w-12 h-12 rounded-full hover:ring-2 hover:ring-orange-500 transition-all"
-                  />
-                </Link>
+        {/* Activities */}
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <Loader2 className="w-8 h-8 animate-spin text-orange-500" />
+          </div>
+        ) : activities.length === 0 ? (
+          <Card className="p-12 text-center">
+            <TrendingUp className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+              No Activities Yet
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400">
+              {filter === "friends"
+                ? "Your friends haven't done anything yet. Encourage them to start solving!"
+                : "Be the first to solve a problem and create some activity!"}
+            </p>
+          </Card>
+        ) : (
+          <AnimatePresence>
+            <motion.div 
+              className="space-y-4"
+              initial="hidden"
+              animate="visible"
+              variants={{
+                visible: {
+                  transition: {
+                    staggerChildren: 0.07
+                  }
+                }
+              }}
+            >
+              {activities.map((activity, index) => (
+                <motion.div
+                  key={activity.id}
+                  variants={{
+                    hidden: { opacity: 0, y: 20, scale: 0.95 },
+                    visible: { opacity: 1, y: 0, scale: 1 }
+                  }}
+                  whileHover={{ scale: 1.02, y: -4 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Card className="p-6 hover:shadow-2xl transition-all duration-300 border-2 hover:border-orange-200 dark:hover:border-orange-800">
+                <div className="flex gap-4">
+                  <Link href={`/profile/${activity.username}`}>
+                    <img
+                      src={
+                        activity.avatarUrl ||
+                        `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                          activity.username
+                        )}&background=random`
+                      }
+                      alt={activity.username}
+                      className="w-12 h-12 rounded-full hover:ring-2 hover:ring-orange-500 transition-all"
+                    />
+                  </Link>
 
-                <div className="flex-1">
-                  {/* Activity Header */}
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex-1">
-                      <p className="text-gray-600 dark:text-gray-300">
-                        <Link
-                          href={`/profile/${activity.user.username}`}
-                          className="font-semibold text-gray-900 dark:text-white hover:text-orange-600 dark:hover:text-orange-400"
-                        >
-                          {activity.user.username}
-                        </Link>{" "}
-                        {getActivityTitle(activity)}
-                      </p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        {activity.timestamp}
-                      </p>
+                  <div className="flex-1">
+                    <div className="flex items-start justify-between mb-2">
+                      <div>
+                        <p className="text-gray-600 dark:text-gray-300">
+                          <Link
+                            href={`/profile/${activity.username}`}
+                            className="font-semibold text-gray-900 dark:text-white hover:text-orange-600 dark:hover:text-orange-400"
+                          >
+                            {activity.username}
+                          </Link>{" "}
+                          <span className="font-bold text-gray-900 dark:text-white">
+                            {activity.title}
+                          </span>
+                        </p>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                          {getRelativeTime(activity.createdAt)}
+                        </p>
+                      </div>
+                      {getActivityIcon(activity.activityType)}
                     </div>
-                    <div className="flex items-center gap-2">
-                      {getActivityIcon(activity.type)}
-                      {activity.content.difficulty && (
-                        <span
-                          className={`px-2 py-1 text-xs font-semibold rounded ${getDifficultyColor(
-                            activity.content.difficulty
-                          )}`}
-                        >
-                          {activity.content.difficulty}
-                        </span>
-                      )}
-                    </div>
-                  </div>
 
-                  {/* Activity Details */}
-                  {activity.content.details && (
-                    <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3 mb-3">
-                      <p className="text-sm text-gray-700 dark:text-gray-300">
-                        {activity.content.details}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Interaction Buttons */}
-                  <div className="flex items-center gap-4 pt-3 border-t border-gray-100 dark:border-gray-800">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleLike(activity.id)}
-                      className={`gap-2 ${
-                        activity.isLiked
-                          ? "text-red-500 hover:text-red-600"
-                          : "text-gray-600 dark:text-gray-400"
-                      }`}
-                    >
-                      <Heart
-                        className={`w-4 h-4 ${activity.isLiked ? "fill-red-500" : ""}`}
-                      />
-                      {activity.likes}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="gap-2 text-gray-600 dark:text-gray-400"
-                    >
-                      <MessageSquare className="w-4 h-4" />
-                      {activity.comments}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="gap-2 text-gray-600 dark:text-gray-400"
-                    >
-                      <Share2 className="w-4 h-4" />
-                      Share
-                    </Button>
+                    {activity.description && (
+                      <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-3">
+                        <p className="text-sm text-gray-700 dark:text-gray-300">
+                          {activity.description}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-
-        {/* Load More */}
-        <div className="mt-6 text-center">
-          <Button variant="outline" className="gap-2">
-            <TrendingUp className="w-4 h-4" />
-            Load More Activities
-          </Button>
-        </div>
+              </Card>
+                </motion.div>
+              ))}
+            </motion.div>
+          </AnimatePresence>
+        )}
       </div>
     </div>
   );

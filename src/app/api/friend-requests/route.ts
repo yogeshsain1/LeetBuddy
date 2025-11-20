@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
-import { friendships, users } from '@/db/schema';
+import { friendships } from '@/db/schema';
+import { user } from '@/db/schema/auth';
 import { eq, and, or, desc } from 'drizzle-orm';
 
 // Send a friend request
 export async function POST(request: NextRequest) {
   try {
     // TODO: Get userId from session/auth
-    const userId = 1; // Placeholder
+    const userId = '1'; // Placeholder (should be a string UUID)
 
     const body = await request.json();
     const { addresseeId } = body;
@@ -33,12 +34,12 @@ export async function POST(request: NextRequest) {
       .where(
         or(
           and(
-            eq(friendships.requesterId, userId),
-            eq(friendships.addresseeId, addresseeId)
+            eq(friendships.requesterId, String(userId)),
+            eq(friendships.addresseeId, String(addresseeId))
           ),
           and(
-            eq(friendships.requesterId, addresseeId),
-            eq(friendships.addresseeId, userId)
+            eq(friendships.requesterId, String(addresseeId)),
+            eq(friendships.addresseeId, String(userId))
           )
         )
       )
@@ -70,8 +71,8 @@ export async function POST(request: NextRequest) {
     const [newFriendship] = await db
       .insert(friendships)
       .values({
-        requesterId: userId,
-        addresseeId,
+        requesterId: String(userId),
+        addresseeId: String(addresseeId),
         status: 'pending',
         requestedAt: now,
         createdAt: now,
@@ -100,7 +101,7 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     // TODO: Get userId from session/auth
-    const userId = 1; // Placeholder
+    const userId = '1'; // Placeholder (should be a string UUID)
 
     const { searchParams } = new URL(request.url);
     const type = searchParams.get('type') || 'all'; // 'sent', 'received', 'all'
@@ -116,17 +117,17 @@ export async function GET(request: NextRequest) {
           requestedAt: friendships.requestedAt,
           respondedAt: friendships.respondedAt,
           requesterId: friendships.requesterId,
-          userId: users.id,
-          username: users.username,
-          fullName: users.fullName,
-          avatarUrl: users.avatarUrl,
-          leetcodeUsername: users.leetcodeUsername,
+          userId: user.id,
+          username: user.username,
+          fullName: user.name,
+          avatarUrl: user.image,
+          leetcodeUsername: user.leetcodeUsername,
         })
         .from(friendships)
-        .innerJoin(users, eq(users.id, friendships.requesterId))
+        .innerJoin(user, eq(user.id, friendships.requesterId))
         .where(
           and(
-            eq(friendships.addresseeId, userId),
+            eq(friendships.addresseeId, String(userId)),
             eq(friendships.status, 'pending')
           )
         )
@@ -155,17 +156,17 @@ export async function GET(request: NextRequest) {
           requestedAt: friendships.requestedAt,
           respondedAt: friendships.respondedAt,
           addresseeId: friendships.addresseeId,
-          userId: users.id,
-          username: users.username,
-          fullName: users.fullName,
-          avatarUrl: users.avatarUrl,
-          leetcodeUsername: users.leetcodeUsername,
+          userId: user.id,
+          username: user.username,
+          fullName: user.name,
+          avatarUrl: user.image,
+          leetcodeUsername: user.leetcodeUsername,
         })
         .from(friendships)
-        .innerJoin(users, eq(users.id, friendships.addresseeId))
+        .innerJoin(user, eq(user.id, friendships.addresseeId))
         .where(
           and(
-            eq(friendships.requesterId, userId),
+            eq(friendships.requesterId, String(userId)),
             eq(friendships.status, 'pending')
           )
         )
@@ -193,17 +194,17 @@ export async function GET(request: NextRequest) {
           status: friendships.status,
           requestedAt: friendships.requestedAt,
           respondedAt: friendships.respondedAt,
-          userId: users.id,
-          username: users.username,
-          fullName: users.fullName,
-          avatarUrl: users.avatarUrl,
-          leetcodeUsername: users.leetcodeUsername,
+          userId: user.id,
+          username: user.username,
+          fullName: user.name,
+          avatarUrl: user.image,
+          leetcodeUsername: user.leetcodeUsername,
         })
         .from(friendships)
-        .innerJoin(users, eq(users.id, friendships.requesterId))
+        .innerJoin(user, eq(user.id, friendships.requesterId))
         .where(
           and(
-            eq(friendships.addresseeId, userId),
+            eq(friendships.addresseeId, String(userId)),
             eq(friendships.status, 'pending')
           )
         );
@@ -229,17 +230,17 @@ export async function GET(request: NextRequest) {
           status: friendships.status,
           requestedAt: friendships.requestedAt,
           respondedAt: friendships.respondedAt,
-          userId: users.id,
-          username: users.username,
-          fullName: users.fullName,
-          avatarUrl: users.avatarUrl,
-          leetcodeUsername: users.leetcodeUsername,
+          userId: user.id,
+          username: user.username,
+          fullName: user.name,
+          avatarUrl: user.image,
+          leetcodeUsername: user.leetcodeUsername,
         })
         .from(friendships)
-        .innerJoin(users, eq(users.id, friendships.addresseeId))
+        .innerJoin(user, eq(user.id, friendships.addresseeId))
         .where(
           and(
-            eq(friendships.requesterId, userId),
+            eq(friendships.requesterId, String(userId)),
             eq(friendships.status, 'pending')
           )
         );

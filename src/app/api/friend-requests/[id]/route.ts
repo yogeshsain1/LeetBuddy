@@ -10,9 +10,9 @@ export async function PATCH(
 ) {
   try {
     // TODO: Get userId from session/auth
-    const userId = 1; // Placeholder
+    const userId = '1'; // Placeholder (should be a string UUID)
 
-    const friendshipId = parseInt(params.id);
+    const friendshipId = parseInt(params.id); // PK is still number
     const body = await request.json();
     const { action } = body; // 'accept' or 'reject'
 
@@ -38,7 +38,7 @@ export async function PATCH(
     }
 
     // Verify user is the addressee
-    if (friendship.addresseeId !== userId) {
+    if (String(friendship.addresseeId) !== String(userId)) {
       return NextResponse.json(
         { success: false, error: { code: 'UNAUTHORIZED', message: 'Not authorized to respond to this request' } },
         { status: 403 }
@@ -91,9 +91,9 @@ export async function DELETE(
 ) {
   try {
     // TODO: Get userId from session/auth
-    const userId = 1; // Placeholder
+    const userId = '1'; // Placeholder (should be a string UUID)
 
-    const friendshipId = parseInt(params.id);
+    const friendshipId = parseInt(params.id); // PK is still number
 
     // Get the friendship
     const [friendship] = await db
@@ -110,7 +110,7 @@ export async function DELETE(
     }
 
     // Verify user is the requester (can only cancel own requests)
-    if (friendship.requesterId !== userId) {
+    if (String(friendship.requesterId) !== String(userId)) {
       return NextResponse.json(
         { success: false, error: { code: 'UNAUTHORIZED', message: 'Not authorized to cancel this request' } },
         { status: 403 }

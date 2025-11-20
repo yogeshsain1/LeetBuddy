@@ -1,5 +1,5 @@
 import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
-import { users } from "../schema";
+import { user } from "./auth";
 
 // ==================== REAL-TIME MESSAGING SYSTEM ====================
 
@@ -9,7 +9,7 @@ export const messageRooms = sqliteTable("message_rooms", {
   type: text("type").notNull(), // 'direct' | 'group'
   name: text("name"), // For group chats
   avatarUrl: text("avatar_url"),
-  createdBy: integer("created_by").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  createdBy: text("created_by").notNull().references(() => user.id, { onDelete: 'cascade' }),
   createdAt: text("created_at").notNull(),
   updatedAt: text("updated_at").notNull(),
   lastMessageAt: text("last_message_at"), // For sorting rooms by activity
@@ -19,7 +19,7 @@ export const messageRooms = sqliteTable("message_rooms", {
 export const roomMembers = sqliteTable("room_members", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   roomId: integer("room_id").notNull().references(() => messageRooms.id, { onDelete: 'cascade' }),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: 'cascade' }),
   role: text("role").notNull().default("member"), // 'admin' | 'member'
   joinedAt: text("joined_at").notNull(),
   lastReadMessageId: integer("last_read_message_id"), // For read receipts
@@ -35,7 +35,7 @@ export const roomMembers = sqliteTable("room_members", {
 export const roomMessages = sqliteTable("room_messages", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   roomId: integer("room_id").notNull().references(() => messageRooms.id, { onDelete: 'cascade' }),
-  senderId: integer("sender_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  senderId: text("sender_id").notNull().references(() => user.id, { onDelete: 'cascade' }),
   content: text("content").notNull(),
   type: text("type").notNull().default("text"), // 'text' | 'image' | 'file' | 'code' | 'system'
   
@@ -72,7 +72,7 @@ export const roomMessages = sqliteTable("room_messages", {
 export const messageReactions = sqliteTable("message_reactions", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   messageId: integer("message_id").notNull().references(() => roomMessages.id, { onDelete: 'cascade' }),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: 'cascade' }),
   emoji: text("emoji").notNull(), // '👍', '❤️', '😂', '😮', '😢', '🙏'
   createdAt: text("created_at").notNull(),
 }, (table) => ({
@@ -83,7 +83,7 @@ export const messageReactions = sqliteTable("message_reactions", {
 export const messageReadReceipts = sqliteTable("message_read_receipts", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   messageId: integer("message_id").notNull().references(() => roomMessages.id, { onDelete: 'cascade' }),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: 'cascade' }),
   readAt: text("read_at").notNull(),
 }, (table) => ({
   messageIdIdx: index("message_read_receipts_message_id_idx").on(table.messageId),
@@ -93,7 +93,7 @@ export const messageReadReceipts = sqliteTable("message_read_receipts", {
 // File Uploads (track all uploaded files)
 export const fileUploads = sqliteTable("file_uploads", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: 'cascade' }),
   fileName: text("file_name").notNull(),
   fileUrl: text("file_url").notNull(),
   thumbnailUrl: text("thumbnail_url"), // For images
@@ -107,7 +107,7 @@ export const fileUploads = sqliteTable("file_uploads", {
 // Notifications (Enhanced for real-time)
 export const realtimeNotifications = sqliteTable("realtime_notifications", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: 'cascade' }),
   type: text("type").notNull(), // 'message' | 'friend_request' | 'mention' | 'reaction' | 'friend_accepted'
   title: text("title").notNull(),
   message: text("message").notNull(),
@@ -124,7 +124,7 @@ export const realtimeNotifications = sqliteTable("realtime_notifications", {
 // User Presence (online/offline status - complement Redis cache)
 export const userPresence = sqliteTable("user_presence", {
   id: integer("id").primaryKey({ autoIncrement: true }),
-  userId: integer("user_id").notNull().unique().references(() => users.id, { onDelete: 'cascade' }),
+  userId: text("user_id").notNull().unique().references(() => user.id, { onDelete: 'cascade' }),
   status: text("status").notNull().default("offline"), // 'online' | 'away' | 'busy' | 'offline'
   lastSeen: text("last_seen").notNull(),
   customStatus: text("custom_status"), // Optional custom status message
@@ -135,7 +135,7 @@ export const userPresence = sqliteTable("user_presence", {
 export const typingIndicators = sqliteTable("typing_indicators", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   roomId: integer("room_id").notNull().references(() => messageRooms.id, { onDelete: 'cascade' }),
-  userId: integer("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  userId: text("user_id").notNull().references(() => user.id, { onDelete: 'cascade' }),
   isTyping: integer("is_typing", { mode: 'boolean' }).notNull().default(true),
   startedAt: text("started_at").notNull(),
   expiresAt: text("expires_at").notNull(), // Auto-expire after 5 seconds

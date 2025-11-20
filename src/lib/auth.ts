@@ -32,6 +32,35 @@ export const auth = betterAuth({
       enabled: !!process.env.GITHUB_CLIENT_ID,
     },
   },
+  user: {
+    additionalFields: {
+      username: {
+        type: "string",
+        required: false,
+        unique: true,
+      },
+      leetcodeUsername: {
+        type: "string",
+        required: false,
+      },
+      bio: {
+        type: "string",
+        required: false,
+      },
+      location: {
+        type: "string",
+        required: false,
+      },
+      githubUrl: {
+        type: "string",
+        required: false,
+      },
+      website: {
+        type: "string",
+        required: false,
+      },
+    },
+  },
 });
 
 export type Session = typeof auth.$Infer.Session;

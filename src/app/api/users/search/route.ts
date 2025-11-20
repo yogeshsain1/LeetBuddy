@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
-import { users, friendships } from '@/db/schema';
+import { user } from '@/db/schema/auth';
+import { friendships } from '@/db/schema';
 import { eq, like, or, and, ne } from 'drizzle-orm';
 
 // Search for users by username or full name
 export async function GET(request: NextRequest) {
   try {
     // TODO: Get userId from session/auth
-    const userId = 1; // Placeholder
+    const userId = '1'; // Placeholder (should be a string UUID)
 
     const { searchParams } = new URL(request.url);
     const query = searchParams.get('q');
@@ -22,25 +23,23 @@ export async function GET(request: NextRequest) {
 
     const searchTerm = `%${query.trim()}%`;
 
-    // Search for users by username or full name (exclude current user)
+    // Search for users by username, full name, or LeetCode username
     const searchResults = await db
       .select({
-        id: users.id,
-        username: users.username,
-        fullName: users.fullName,
-        bio: users.bio,
-        avatarUrl: users.avatarUrl,
-        location: users.location,
-        leetcodeUsername: users.leetcodeUsername,
+        id: user.id,
+        username: user.username,
+        fullName: user.name,
+        bio: user.bio,
+        avatarUrl: user.image,
+        location: user.location,
+        leetcodeUsername: user.leetcodeUsername,
       })
-      .from(users)
+      .from(user)
       .where(
-        and(
-          ne(users.id, userId),
-          or(
-            like(users.username, searchTerm),
-            like(users.fullName, searchTerm)
-          )
+        or(
+          like(user.username, searchTerm),
+          like(user.name, searchTerm),
+          like(user.leetcodeUsername, searchTerm)
         )
       )
       .limit(limit);
@@ -55,12 +54,12 @@ export async function GET(request: NextRequest) {
           .where(
             or(
               and(
-                eq(friendships.requesterId, userId),
-                eq(friendships.addresseeId, user.id)
+                eq(friendships.requesterId, String(userId)),
+                eq(friendships.addresseeId, String(user.id))
               ),
               and(
-                eq(friendships.requesterId, user.id),
-                eq(friendships.addresseeId, userId)
+                eq(friendships.requesterId, String(user.id)),
+                eq(friendships.addresseeId, String(userId))
               )
             )
           )
@@ -72,7 +71,7 @@ export async function GET(request: NextRequest) {
 
         if (friendship) {
           friendshipId = friendship.id;
-          isRequester = friendship.requesterId === userId;
+          isRequester = String(friendship.requesterId) === String(userId);
 
           if (friendship.status === 'accepted') {
             friendshipStatus = 'friends';

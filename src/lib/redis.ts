@@ -53,7 +53,7 @@ export function getRedisClient(): Redis | null {
 
 // ==================== PRESENCE TRACKING ====================
 
-export async function setUserOnline(userId: number): Promise<void> {
+export async function setUserOnline(userId: string): Promise<void> {
   const redis = getRedisClient();
   if (!redis) return;
   const key = `user:${userId}:online`;
@@ -62,7 +62,7 @@ export async function setUserOnline(userId: number): Promise<void> {
   await redis.publish('user:presence', JSON.stringify({ userId, status: 'online' }));
 }
 
-export async function setUserOffline(userId: number): Promise<void> {
+export async function setUserOffline(userId: string): Promise<void> {
   const redis = getRedisClient();
   if (!redis) return;
   const key = `user:${userId}:online`;
@@ -101,7 +101,7 @@ export async function getOnlineUsers(userIds: number[]): Promise<number[]> {
 
 // ==================== TYPING INDICATORS ====================
 
-export async function setUserTyping(roomId: number, userId: number): Promise<void> {
+export async function setUserTyping(roomId: number, userId: string): Promise<void> {
   const redis = getRedisClient();
   if (!redis) return;
   const key = `room:${roomId}:typing`;
@@ -111,7 +111,7 @@ export async function setUserTyping(roomId: number, userId: number): Promise<voi
   await redis.publish('room:typing', JSON.stringify({ roomId, userId, isTyping: true }));
 }
 
-export async function removeUserTyping(roomId: number, userId: number): Promise<void> {
+export async function removeUserTyping(roomId: number, userId: string): Promise<void> {
   const redis = getRedisClient();
   if (!redis) return;
   const key = `room:${roomId}:typing`;
@@ -154,7 +154,7 @@ export async function getCachedMessages(roomId: number, limit = 50): Promise<any
 
 // ==================== UNREAD COUNTS ====================
 
-export async function incrementUnreadCount(userId: number, roomId: number): Promise<void> {
+export async function incrementUnreadCount(userId: string, roomId: number): Promise<void> {
   const redis = getRedisClient();
   if (!redis) return;
   const key = `user:${userId}:unread`;
@@ -162,7 +162,7 @@ export async function incrementUnreadCount(userId: number, roomId: number): Prom
   await redis.hincrby(key, roomId.toString(), 1);
 }
 
-export async function resetUnreadCount(userId: number, roomId: number): Promise<void> {
+export async function resetUnreadCount(userId: string, roomId: number): Promise<void> {
   const redis = getRedisClient();
   if (!redis) return;
   const key = `user:${userId}:unread`;
@@ -170,7 +170,7 @@ export async function resetUnreadCount(userId: number, roomId: number): Promise<
   await redis.hdel(key, roomId.toString());
 }
 
-export async function getUnreadCounts(userId: number): Promise<Record<number, number>> {
+export async function getUnreadCounts(userId: string): Promise<Record<number, number>> {
   const redis = getRedisClient();
   if (!redis) return {};
   const key = `user:${userId}:unread`;
@@ -188,7 +188,7 @@ export async function getUnreadCounts(userId: number): Promise<Record<number, nu
 // ==================== RATE LIMITING ====================
 
 export async function checkRateLimit(
-  userId: number,
+  userId: string,
   action: string,
   maxRequests: number,
   windowSeconds: number
@@ -208,7 +208,7 @@ export async function checkRateLimit(
 
 // ==================== SESSION MANAGEMENT ====================
 
-export async function storeSocketSession(userId: number, socketId: string): Promise<void> {
+export async function storeSocketSession(userId: string, socketId: string): Promise<void> {
   const redis = getRedisClient();
   if (!redis) return;
   const key = `user:${userId}:sockets`;
@@ -217,7 +217,7 @@ export async function storeSocketSession(userId: number, socketId: string): Prom
   await redis.expire(key, 86400); // 24 hours
 }
 
-export async function removeSocketSession(userId: number, socketId: string): Promise<void> {
+export async function removeSocketSession(userId: string, socketId: string): Promise<void> {
   const redis = getRedisClient();
   if (!redis) return;
   const key = `user:${userId}:sockets`;

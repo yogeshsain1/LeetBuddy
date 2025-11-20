@@ -8,7 +8,7 @@ describe("Rate Limiting", () => {
       const mockRequest = {
         ip: "192.168.1.1",
         headers: new Headers(),
-      } as NextRequest;
+      } as unknown as NextRequest;
 
       // First request should pass
       expect(() => checkRateLimit(mockRequest, "api")).not.toThrow();
@@ -18,7 +18,7 @@ describe("Rate Limiting", () => {
       const mockRequest = {
         ip: "192.168.1.2",
         headers: new Headers(),
-      } as NextRequest;
+      } as unknown as NextRequest;
 
       // API tier should allow more requests than strict
       expect(() => checkRateLimit(mockRequest, "api")).not.toThrow();

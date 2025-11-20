@@ -96,22 +96,22 @@ describe("Validation System", () => {
 
   describe("friendRequestSchema", () => {
     it("should validate correct friend request data", () => {
-      const data = { userId: 123 };
+      const data = { userId: "123" };
       expect(() => validateData(friendRequestSchema, data)).not.toThrow();
     });
 
     it("should reject negative user ID", () => {
-      const data = { userId: -1 };
+      const data = { userId: "-1" };
       expect(() => validateData(friendRequestSchema, data)).toThrow();
     });
 
     it("should reject zero user ID", () => {
-      const data = { userId: 0 };
+      const data = { userId: "0" };
       expect(() => validateData(friendRequestSchema, data)).toThrow();
     });
 
     it("should reject non-integer user ID", () => {
-      const data = { userId: 1.5 };
+      const data = { userId: "1.5" };
       expect(() => validateData(friendRequestSchema, data)).toThrow();
     });
   });

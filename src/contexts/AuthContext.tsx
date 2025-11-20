@@ -82,7 +82,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (data.user) {
       setUser(data.user);
-      router.push("/home");
+      router.push("/messages");
     }
   }
 

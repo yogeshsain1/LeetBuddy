@@ -18,7 +18,7 @@ import {
   removeFriend,
 } from "@/lib/friends";
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { user } from "@/db/schema/auth";
 import { eq } from "drizzle-orm";
 
 export async function GET(request: NextRequest) {
@@ -40,44 +40,44 @@ export async function GET(request: NextRequest) {
 
     if (action === "friends") {
       // Get all friends
-      const friends = await getUserFriends(parseInt(session.user.id));
+      const friends = await getUserFriends(session.user.id);
       
       // Fetch friend details
       const friendDetails = await Promise.all(
         friends.map(async (f) => {
-          const [user] = await db
+          const [userDetail] = await db
             .select({
-              id: users.id,
-              username: users.username,
-              fullName: users.fullName,
-              avatarUrl: users.avatarUrl,
-              bio: users.bio,
+              id: user.id,
+              username: user.username,
+              fullName: user.name,
+              avatarUrl: user.image,
+              bio: user.bio,
             })
-            .from(users)
-            .where(eq(users.id, f.friendId));
-          return { ...user, friendsSince: f.since };
+            .from(user)
+            .where(eq(user.id, f.friendId));
+          return { ...userDetail, friendsSince: f.since };
         })
       );
 
       return successResponse({ friends: friendDetails });
     } else if (action === "pending") {
       // Get pending friend requests
-      const pending = await getPendingFriendRequests(parseInt(session.user.id));
+      const pending = await getPendingFriendRequests(session.user.id);
       
       // Fetch requester details
       const pendingDetails = await Promise.all(
         pending.map(async (p) => {
-          const [user] = await db
+          const [userDetail] = await db
             .select({
-              id: users.id,
-              username: users.username,
-              fullName: users.fullName,
-              avatarUrl: users.avatarUrl,
-              bio: users.bio,
+              id: user.id,
+              username: user.username,
+              fullName: user.name,
+              avatarUrl: user.image,
+              bio: user.bio,
             })
-            .from(users)
-            .where(eq(users.id, p.requesterId));
-          return { ...p, requester: user };
+            .from(user)
+            .where(eq(user.id, p.requesterId));
+          return { ...p, requester: userDetail };
         })
       );
 
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
       const data = validateRequestBody(body, friendRequestSchema);
       
       // Send friend request
-      await sendFriendRequest(parseInt(session.user.id), data.userId);
+      await sendFriendRequest(session.user.id, data.userId);
       return successResponse(
         { success: true },
         { timestamp: new Date().toISOString() }
@@ -123,19 +123,19 @@ export async function POST(request: NextRequest) {
       if (!friendshipId) {
         return validationError("friendshipId is required");
       }
-      await acceptFriendRequest(friendshipId, parseInt(session.user.id));
+      await acceptFriendRequest(friendshipId, session.user.id);
       return successResponse({ success: true });
     } else if (action === "reject") {
       if (!friendshipId) {
         return validationError("friendshipId is required");
       }
-      await rejectFriendRequest(friendshipId, parseInt(session.user.id));
+      await rejectFriendRequest(friendshipId, session.user.id);
       return successResponse({ success: true });
     } else if (action === "remove") {
       if (!userId) {
         return validationError("userId is required");
       }
-      await removeFriend(parseInt(session.user.id), userId);
+      await removeFriend(session.user.id, userId);
       return successResponse({ success: true });
     }
 

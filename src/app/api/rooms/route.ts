@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
 import { messageRooms, roomMembers, roomMessages } from '@/db/schema/messages';
-import { users } from '@/db/schema';
-import { eq, and, desc, or } from 'drizzle-orm';
+import { user } from '@/db/schema/auth';
+import { eq, and, desc, or, sql } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   try {
     // TODO: Get userId from session/auth
-    const userId = 1; // Placeholder
+    const userId = '1'; // Placeholder (should be a string UUID)
 
     // Get all rooms where user is a member
     const userRooms = await db
@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
       })
       .from(roomMembers)
       .innerJoin(messageRooms, eq(messageRooms.id, roomMembers.roomId))
-      .where(eq(roomMembers.userId, userId))
+      .where(eq(roomMembers.userId, String(userId)))
       .orderBy(desc(messageRooms.lastMessageAt));
 
     // For each room, get the other member's info (for direct chats)
@@ -27,12 +27,12 @@ export async function GET(request: NextRequest) {
         const otherMembers = await db
           .select({
             userId: roomMembers.userId,
-            userName: users.name,
-            userEmail: users.email,
-            userImage: users.image,
+            userName: user.username,
+            userEmail: user.email,
+            userImage: user.image,
           })
           .from(roomMembers)
-          .innerJoin(users, eq(users.id, roomMembers.userId))
+          .innerJoin(user, sql`CAST(${user.id} AS INTEGER) = ${roomMembers.userId}`)
           .where(
             and(
               eq(roomMembers.roomId, room.id),
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
           );
 
         // Filter out current user
-        const otherUser = otherMembers.find(m => m.userId !== userId);
+        const otherUser = otherMembers.find(m => String(m.userId) !== String(userId));
 
         // Get last message
         const lastMessage = await db
@@ -84,13 +84,13 @@ export async function POST(request: NextRequest) {
     const { otherUserId, type = 'direct' } = body;
 
     // TODO: Get userId from session/auth
-    const userId = 1; // Placeholder
+    const userId = '1'; // Placeholder (should be a string UUID)
 
     // Check if room already exists for these two users
     const existingRooms = await db
       .select({ roomId: roomMembers.roomId })
       .from(roomMembers)
-      .where(eq(roomMembers.userId, userId));
+      .where(eq(roomMembers.userId, String(userId)));
 
     for (const { roomId } of existingRooms) {
       const members = await db
@@ -99,8 +99,8 @@ export async function POST(request: NextRequest) {
         .where(eq(roomMembers.roomId, roomId));
 
       if (members.length === 2) {
-        const memberIds = members.map(m => m.userId);
-        if (memberIds.includes(userId) && memberIds.includes(otherUserId)) {
+        const memberIds = members.map(m => String(m.userId));
+        if (memberIds.includes(String(userId)) && memberIds.includes(String(otherUserId))) {
           // Room already exists
           return NextResponse.json({
             success: true,
@@ -111,15 +111,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Create new room
+    const now = new Date().toISOString();
     const [newRoom] = await db
       .insert(messageRooms)
       .values({
         type,
         name: null,
         avatarUrl: null,
-        createdBy: userId,
-        createdAt: new Date().toISOString(),
-        lastMessageAt: new Date().toISOString(),
+        createdBy: String(userId),
+        createdAt: now,
+        updatedAt: now,
+        lastMessageAt: now,
       })
       .returning();
 
@@ -127,7 +129,7 @@ export async function POST(request: NextRequest) {
     await db.insert(roomMembers).values([
       {
         roomId: newRoom.id,
-        userId,
+        userId: String(userId),
         role: 'admin',
         joinedAt: new Date().toISOString(),
         isPinned: false,
@@ -135,7 +137,7 @@ export async function POST(request: NextRequest) {
       },
       {
         roomId: newRoom.id,
-        userId: otherUserId,
+        userId: String(otherUserId),
         role: 'member',
         joinedAt: new Date().toISOString(),
         isPinned: false,

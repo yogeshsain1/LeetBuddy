@@ -64,7 +64,7 @@ export default function CallUI({
   const [showControls, setShowControls] = useState(true);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const hideControlsTimer = useRef<NodeJS.Timeout>();
+  const hideControlsTimer = useRef<NodeJS.Timeout | null>(null);
 
   const currentUser = participants.find((p) => p.id === currentUserId);
   const otherParticipants = participants.filter((p) => p.id !== currentUserId);

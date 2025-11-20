@@ -5,7 +5,7 @@ import { eq, and, or } from "drizzle-orm";
 /**
  * Check if two users are friends
  */
-export async function areFriends(userId1: number, userId2: number): Promise<boolean> {
+export async function areFriends(userId1: string, userId2: string): Promise<boolean> {
   const friendship = await db
     .select()
     .from(friendships)
@@ -26,7 +26,7 @@ export async function areFriends(userId1: number, userId2: number): Promise<bool
 /**
  * Get all friends of a user
  */
-export async function getUserFriends(userId: number) {
+export async function getUserFriends(userId: string) {
   const friendshipsData = await db
     .select()
     .from(friendships)
@@ -46,7 +46,7 @@ export async function getUserFriends(userId: number) {
 /**
  * Send a friend request
  */
-export async function sendFriendRequest(requesterId: number, addresseeId: number) {
+export async function sendFriendRequest(requesterId: string, addresseeId: string) {
   // Check if trying to add yourself
   if (requesterId === addresseeId) {
     throw new Error("You can't send a friend request to yourself");
@@ -80,7 +80,7 @@ export async function sendFriendRequest(requesterId: number, addresseeId: number
 /**
  * Accept a friend request
  */
-export async function acceptFriendRequest(friendshipId: number, addresseeId: number) {
+export async function acceptFriendRequest(friendshipId: number, addresseeId: string) {
   const now = new Date().toISOString();
   return await db
     .update(friendships)
@@ -95,7 +95,7 @@ export async function acceptFriendRequest(friendshipId: number, addresseeId: num
 /**
  * Reject a friend request
  */
-export async function rejectFriendRequest(friendshipId: number, addresseeId: number) {
+export async function rejectFriendRequest(friendshipId: number, addresseeId: string) {
   const now = new Date().toISOString();
   return await db
     .update(friendships)
@@ -110,7 +110,7 @@ export async function rejectFriendRequest(friendshipId: number, addresseeId: num
 /**
  * Get pending friend requests for a user
  */
-export async function getPendingFriendRequests(userId: number) {
+export async function getPendingFriendRequests(userId: string) {
   return await db
     .select()
     .from(friendships)
@@ -120,7 +120,7 @@ export async function getPendingFriendRequests(userId: number) {
 /**
  * Remove a friend
  */
-export async function removeFriend(userId: number, friendId: number) {
+export async function removeFriend(userId: string, friendId: string) {
   return await db
     .delete(friendships)
     .where(

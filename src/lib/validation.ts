@@ -52,14 +52,14 @@ export const signupSchema = z.object({
  * Friend request validation schema
  */
 export const friendRequestSchema = z.object({
-  userId: z.number().int().positive(),
+  userId: z.string().regex(/^[1-9]\d*$/, "userId must be a positive integer string"),
 });
 
 /**
  * Message validation schema
  */
 export const messageSchema = z.object({
-  receiverId: z.number().int().positive(),
+  receiverId: z.string().min(1),
   content: z.string().min(1).max(5000),
   messageType: z.enum(["text", "image", "file", "code"]).default("text"),
   codeLanguage: z.string().optional(),
